@@ -12,6 +12,7 @@
   "dependencies": {
     "create-jest-runner": "^0.5.0",
     "execa": "^5.0.0",
+    "import-fresh": "^3.3.0",
     "jest": "^26.6.3",
     "jest-diff": "^26.6.2",
     "resolve-package-path": "^3.1.0",

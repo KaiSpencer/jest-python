@@ -5,6 +5,9 @@ const execa = require('execa');
 import defaultDiff from 'jest-diff';
 const tempy = require('tempy');
 const fs = require('fs');
+const path = require('path');
+import { TestWatcher } from 'jest';
+const importFresh = require('import-fresh');
 
 class TestRunner {
   _globalConfig: any;
@@ -12,9 +15,15 @@ class TestRunner {
     this._globalConfig = globalConfig;
   }
 
-  async runTests(tests, watcher, onStart, onResult, onFailure, options) {
+  async runTests(
+    tests,
+    watcher: TestWatcher,
+    onStart,
+    onResult,
+    onFailure,
+    options
+  ) {
     const mutex = throat(this._globalConfig.maxWorkers);
-
     return Promise.all(
       tests.map((test) =>
         mutex(async () => {
@@ -23,14 +32,11 @@ class TestRunner {
           }
 
           await onStart(test);
-
           return this._runTest(
             test.path,
             test.context.config,
             test.context.resolver
-          )
-            .then((result) => onResult(test, result))
-            .catch((error) => onFailure(test, error));
+          ).then((result) => onResult(test, result));
         })
       )
     );
@@ -47,14 +53,19 @@ class TestRunner {
         ]);
       } catch (error) {}
 
-      const testOutput: PytestOutput = require(`${testPath}.json`);
+      const testOutput: PytestOutput = importFresh(`${testPath}.json`);
+      // console.log('path is ', path.resolve(`${testPath}.json`));
+
+      // console.log(testOutput);
 
       const end = +new Date();
 
       resolve({
         console: null,
         failureMessage:
-          testOutput.summary.failed > 0 ? formatFailureMessage(testOutput) : '',
+          testOutput.summary.failed > 0
+            ? formatFailureMessage(testOutput)
+            : null,
         numFailingTests:
           testOutput.tests.filter((n) => n.outcome === 'failed').length || 0,
         numPassingTests:
@@ -111,7 +122,6 @@ const formatFailureMessage = (testOutput: PytestOutput): string => {
     }
     message += failedTests[i].call.crash.message;
     message += failedTests[i].call.longrepr;
-    // message += failedTests[i].call.traceback;
   }
   return message;
 };
@@ -119,7 +129,7 @@ const formatFailureMessage = (testOutput: PytestOutput): string => {
 const toTest = (test: Test) => ({
   ancestorTitles: [],
   duration: test.setup.duration + test.call.duration + test.teardown.duration,
-  failureMessages: test.outcome === 'failed' ? test.call.crash.message : [],
+  failureMessages: test.outcome === 'failed' ? [test.call.crash.message] : [],
   fullName: test.nodeid,
   numPassingAsserts: test.outcome === 'passed' ? 1 : 0,
   status: test.outcome,

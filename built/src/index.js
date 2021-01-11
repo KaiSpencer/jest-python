@@ -55,6 +55,8 @@ var execa = require('execa');
 var jest_diff_1 = require("jest-diff");
 var tempy = require('tempy');
 var fs = require('fs');
+var path = require('path');
+var importFresh = require('import-fresh');
 var TestRunner = /** @class */ (function () {
     function TestRunner(globalConfig) {
         this._globalConfig = globalConfig;
@@ -76,9 +78,7 @@ var TestRunner = /** @class */ (function () {
                                         return [4 /*yield*/, onStart(test)];
                                     case 1:
                                         _a.sent();
-                                        return [2 /*return*/, this._runTest(test.path, test.context.config, test.context.resolver)
-                                                .then(function (result) { return onResult(test, result); })
-                                                .catch(function (error) { return onFailure(test, error); })];
+                                        return [2 /*return*/, this._runTest(test.path, test.context.config, test.context.resolver).then(function (result) { return onResult(test, result); })];
                                 }
                             });
                         }); });
@@ -109,11 +109,13 @@ var TestRunner = /** @class */ (function () {
                                     error_1 = _a.sent();
                                     return [3 /*break*/, 3];
                                 case 3:
-                                    testOutput = require(testPath + ".json");
+                                    testOutput = importFresh(testPath + ".json");
                                     end = +new Date();
                                     resolve({
                                         console: null,
-                                        failureMessage: testOutput.summary.failed > 0 ? formatFailureMessage(testOutput) : '',
+                                        failureMessage: testOutput.summary.failed > 0
+                                            ? formatFailureMessage(testOutput)
+                                            : null,
                                         numFailingTests: testOutput.tests.filter(function (n) { return n.outcome === 'failed'; }).length || 0,
                                         numPassingTests: testOutput.tests.filter(function (n) { return n.outcome === 'passed'; }).length || 0,
                                         numPendingTests: 0,
@@ -169,14 +171,13 @@ var formatFailureMessage = function (testOutput) {
         }
         message += failedTests[i].call.crash.message;
         message += failedTests[i].call.longrepr;
-        // message += failedTests[i].call.traceback;
     }
     return message;
 };
 var toTest = function (test) { return ({
     ancestorTitles: [],
     duration: test.setup.duration + test.call.duration + test.teardown.duration,
-    failureMessages: test.outcome === 'failed' ? test.call.crash.message : [],
+    failureMessages: test.outcome === 'failed' ? [test.call.crash.message] : [],
     fullName: test.nodeid,
     numPassingAsserts: test.outcome === 'passed' ? 1 : 0,
     status: test.outcome,
