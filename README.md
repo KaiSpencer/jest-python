@@ -1,17 +1,32 @@
-# generated-jest-runner
+# jest-python
+
+Jest test runner for python.
 
 ## Usage
 
 ### Install
 
-Install `jest`_(it needs Jest 21+)_ and `generated-jest-runner`
+```
+yarn add jest-python
+```
 
-```bash
-yarn add --dev jest generated-jest-runner
+### Requirements
 
-# or with NPM
+Install via pip3
 
-npm install --save-dev jest generated-jest-runner
+```
+python3
+pytest
+pytest-json-report
+```
+
+Install via yarn (or npm)
+
+```
+jest
+
+Optional:
+jest-watch-typeahead
 ```
 
 ## Add your runner to Jest config
@@ -21,23 +36,29 @@ Once you have your Jest runner you can add it to your Jest config.
 In your `package.json`
 
 ```json
-{
-  "jest": {
-    "runner": "generated-jest-runner"
+"jest": {
+    "runner": "jest-python",
+    "watchPlugins": [
+      "jest-watch-typeahead/filename",
+      "jest-watch-typeahead/testname"
+    ],
+    "testMatch": [
+      "**/test_*.py"
+    ],
+    "moduleFileExtensions": [
+      "py"
+    ]
   }
-}
-```
-
-Or in `jest.config.js`
-
-```js
-module.exports = {
-  runner: require.resolve('generated-jest-runner'),
-};
 ```
 
 ### Run Jest
 
 ```bash
 yarn jest
+```
+
+or in watch mode
+
+```
+yarn jest --watchAll
 ```

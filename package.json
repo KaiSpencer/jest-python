@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Jest runner for python",
   "main": "built/src/index.js",
+  "repository": {
+    "url": "https://github.com/KaiSpencer/jest-python"
+  },
   "scripts": {
     "tsc": "tsc"
   },
