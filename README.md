@@ -2,8 +2,7 @@
 
 A jest runner for executing python tests.
 
-![Alt Text](https://s2.gifyu.com/images/jest-python-2.gif)
-
+<iframe src="https://giphy.com/embed/kxE0YJ3mkvX4usPjO0" width="393" height="480" frameBorder="0" class="giphy-embed" allowFullScreen></iframe><p><a href="https://giphy.com/gifs/kxE0YJ3mkvX4usPjO0"></a></p>
 - [Setup](#setup)  
   &nbsp;&nbsp;- [Install](#install)  
   &nbsp;&nbsp;- [Requirements](#install)
