@@ -2,7 +2,7 @@
 
 A jest runner for executing python tests.
 
-[![jest-python-2.gif](https://s2.gifyu.com/images/jest-python-2.gif)](https://gifyu.com/image/FvAS)
+<a href="https://gifyu.com/image/FvAS"><img src="https://s2.gifyu.com/images/jest-python-2.gif" alt="jest-python-2.gif" border="0" /></a>
 
 - [Setup](#setup)  
   &nbsp;&nbsp;- [Install](#install)  
