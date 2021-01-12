@@ -2,7 +2,7 @@
 
 A jest runner for executing python tests.
 
-<img src="https://media.giphy.com/media/kxE0YJ3mkvX4usPjO0/giphy.gif" class="center"></img>
+![expo runner](/jest-python-2.gif?raw=true)
 
 - [Setup](#setup)  
   &nbsp;&nbsp;- [Install](#install)  
