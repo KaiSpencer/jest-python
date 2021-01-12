@@ -2,7 +2,8 @@
 
 A jest runner for executing python tests.
 
-<iframe src="https://giphy.com/embed/kxE0YJ3mkvX4usPjO0" width="393" height="480" frameBorder="0" class="giphy-embed" allowFullScreen></iframe><p><a href="https://giphy.com/gifs/kxE0YJ3mkvX4usPjO0"></a></p>
+<img src="https://media.giphy.com/media/kxE0YJ3mkvX4usPjO0/giphy.gif"></img>
+
 - [Setup](#setup)  
   &nbsp;&nbsp;- [Install](#install)  
   &nbsp;&nbsp;- [Requirements](#install)
