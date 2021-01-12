@@ -1,18 +1,33 @@
 # jest-python
 
-Jest test runner for python.
+A jest runner for executing python tests.
 
-## Usage
+[![jest-python-2.gif](https://s2.gifyu.com/images/jest-python-2.gif)](https://gifyu.com/image/FvAS)
+
+- [Setup](#setup)  
+  &nbsp;&nbsp;- [Install](#install)  
+  &nbsp;&nbsp;- [Requirements](#install)
+- [Run](#run)  
+  &nbsp;&nbsp;- [Running tests](#run-jest)  
+  &nbsp;&nbsp;- [Running with pipenv](#run-with-pipenv)
+- [Demonstration config](#demonstration-config)
+
+## Setup
 
 ### Install
 
+Install with yarn or npm
+
 ```
-yarn add jest-python
+yarn add --dev jest-python
+npm install --save-dev jest-python
 ```
 
 ### Requirements
 
-Install via pip3
+#### Python dependencies
+
+Install via pip/pip3
 
 ```
 python3
@@ -20,22 +35,64 @@ pytest
 pytest-json-report
 ```
 
+#### Node dependencies
+
 Install via yarn (or npm)
 
 ```
-jest
-
-Optional:
-jest-watch-typeahead
+yarn add --dev jest
+npm install --save-dev jest
 ```
 
-## Add your runner to Jest config
-
-Once you have your Jest runner you can add it to your Jest config.
+## Add jest-python as the jest runner
 
 In your `package.json`
 
 ```json
+"jest": {
+    "runner": "jest-python",
+    "testMatch": [
+      "**/test_*.py"
+    ],
+    "moduleFileExtensions": [
+      "py"
+    ]
+  }
+```
+
+## Run
+
+### Run Jest
+
+```bash
+yarn jest
+```
+
+### Run with pipenv
+
+You can run tests in a pipenv shell.
+
+In the project root create a `.env` file.
+
+Add a variable `VIRTUALENV` assigned to the absolute path to the pipfile you wish to source.
+
+```
+VIRTUALENV=/Users/kai/projects/test-jest/Pipfile
+```
+
+### Demonstration config
+
+#### Extra dependencies
+
+jest-watch-typeahead
+
+```
+yarn add --dev jest-watch-typeahead
+```
+
+#### Config used
+
+````json
 "jest": {
     "runner": "jest-python",
     "watchPlugins": [
@@ -48,17 +105,5 @@ In your `package.json`
     "moduleFileExtensions": [
       "py"
     ]
-  }
-```
-
-### Run Jest
-
-```bash
-yarn jest
-```
-
-or in watch mode
-
-```
-yarn jest --watchAll
-```
+  }```
+````

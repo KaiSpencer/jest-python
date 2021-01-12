@@ -1,13 +1,12 @@
 const chalk = require('chalk');
 const throat = require('throat');
 import { PytestOutput, Test } from '../types/pytest';
-const execa = require('execa');
 import defaultDiff from 'jest-diff';
-const tempy = require('tempy');
-const fs = require('fs');
-const path = require('path');
 import { TestWatcher } from 'jest';
 const importFresh = require('import-fresh');
+require('dotenv').config();
+import { exec, shell } from '@tunnckocore/execa';
+import { unlink } from 'fs';
 
 class TestRunner {
   _globalConfig: any;
@@ -45,19 +44,20 @@ class TestRunner {
   async _runTest(testPath, projectConfig, resolver) {
     return new Promise(async (resolve, reject) => {
       try {
-        await execa('py.test', [
-          testPath,
-          '--json-report',
-          '--json-report-indent=2',
-          `--json-report-file=${testPath}.json`,
-        ]);
+        if (process.env.VIRTUALENV) {
+          await shell([
+            `export PIPENV_PIPFILE=${process.env.VIRTUALENV}`,
+            `pipenv run pytest ${testPath} --json-report --json-report-indent=2 --json-report-file=${testPath}.json`,
+          ]);
+        } else {
+          await exec(
+            `py.test ${testPath} --json-report --json-report-indent=2 --json-report-file=${testPath}.json`
+          );
+        }
       } catch (error) {}
 
       const testOutput: PytestOutput = importFresh(`${testPath}.json`);
-      // console.log('path is ', path.resolve(`${testPath}.json`));
-
-      // console.log(testOutput);
-
+      await unlink(`${testPath}.json`, () => {});
       const end = +new Date();
 
       resolve({

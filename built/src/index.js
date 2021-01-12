@@ -51,12 +51,11 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 Object.defineProperty(exports, "__esModule", { value: true });
 var chalk = require('chalk');
 var throat = require('throat');
-var execa = require('execa');
 var jest_diff_1 = require("jest-diff");
-var tempy = require('tempy');
-var fs = require('fs');
-var path = require('path');
 var importFresh = require('import-fresh');
+require('dotenv').config();
+var execa_1 = require("@tunnckocore/execa");
+var fs_1 = require("fs");
 var TestRunner = /** @class */ (function () {
     function TestRunner(globalConfig) {
         this._globalConfig = globalConfig;
@@ -95,21 +94,28 @@ var TestRunner = /** @class */ (function () {
                         return __generator(this, function (_a) {
                             switch (_a.label) {
                                 case 0:
-                                    _a.trys.push([0, 2, , 3]);
-                                    return [4 /*yield*/, execa('py.test', [
-                                            testPath,
-                                            '--json-report',
-                                            '--json-report-indent=2',
-                                            "--json-report-file=" + testPath + ".json",
+                                    _a.trys.push([0, 5, , 6]);
+                                    if (!process.env.VIRTUALENV) return [3 /*break*/, 2];
+                                    return [4 /*yield*/, execa_1.shell([
+                                            "export PIPENV_PIPFILE=" + process.env.VIRTUALENV,
+                                            "pipenv run pytest " + testPath + " --json-report --json-report-indent=2 --json-report-file=" + testPath + ".json",
                                         ])];
                                 case 1:
                                     _a.sent();
-                                    return [3 /*break*/, 3];
-                                case 2:
-                                    error_1 = _a.sent();
-                                    return [3 /*break*/, 3];
+                                    return [3 /*break*/, 4];
+                                case 2: return [4 /*yield*/, execa_1.exec("py.test " + testPath + " --json-report --json-report-indent=2 --json-report-file=" + testPath + ".json")];
                                 case 3:
+                                    _a.sent();
+                                    _a.label = 4;
+                                case 4: return [3 /*break*/, 6];
+                                case 5:
+                                    error_1 = _a.sent();
+                                    return [3 /*break*/, 6];
+                                case 6:
                                     testOutput = importFresh(testPath + ".json");
+                                    return [4 /*yield*/, fs_1.unlink(testPath + ".json", function () { })];
+                                case 7:
+                                    _a.sent();
                                     end = +new Date();
                                     resolve({
                                         console: null,
