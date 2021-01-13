@@ -1,6 +1,6 @@
 {
   "name": "jest-python",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Jest runner for python",
   "main": "built/src/index.js",
   "repository": {
