@@ -6,13 +6,13 @@ export interface PytestOutput {
   environment: Environment;
   summary: Summary;
   collectors: Collector[];
-  tests: Test[];
+  tests: PytestTest[];
 }
 
-export interface Test {
+export interface PytestTest {
   nodeid: string;
   lineno: number;
-  outcome: string;
+  outcome: 'passed' | 'failed';
   keywords: string[];
   setup: Setup;
   call: Call;
@@ -25,6 +25,8 @@ interface Call {
   crash?: Crash;
   traceback?: Crash[];
   longrepr?: string;
+  stdout?: string;
+  stderr?: string;
 }
 
 interface Crash {
