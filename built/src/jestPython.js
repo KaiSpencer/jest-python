@@ -92,49 +92,48 @@ var TestRunner = /** @class */ (function () {
             var _this = this;
             return __generator(this, function (_a) {
                 return [2 /*return*/, new Promise(function (resolve, reject) { return __awaiter(_this, void 0, void 0, function () {
-                        var pytestRun, pipenvRun, exportPipfile, pytestNamePattern, pattern, error_1, testOutput, end, assertionResults, testResult;
+                        var extraConfig, pattern, error_1, testOutput, end, assertionResults, testResult;
                         return __generator(this, function (_a) {
                             switch (_a.label) {
                                 case 0:
-                                    pytestRun = "python3 -m pytest " + testPath + " --json-report --json-report-indent=2 --json-report-file=" + testPath + ".json";
-                                    pipenvRun = 'pipenv run';
-                                    exportPipfile = "export PIPENV_PIPFILE=" + process.env.VIRTUALENV;
-                                    pytestNamePattern = '';
+                                    _a.trys.push([0, 5, , 6]);
+                                    extraConfig = [];
+                                    /**
+                                     * When a filter is applied by jest-watcher it is passed in _globalConfig.
+                                     * Check to see if there is a test name pattern
+                                     */
                                     if (this._globalConfig.testNamePattern) {
                                         pattern = this._globalConfig.testNamePattern;
                                         // If select option remove leading ^ and trailing $
                                         if (pattern.charAt(0) === '^') {
                                             pattern = pattern.substring(1, pattern.length - 1);
                                         }
-                                        pytestNamePattern = "-k " + pattern + " ";
+                                        extraConfig.push("-k " + pattern);
                                     }
-                                    _a.label = 1;
-                                case 1:
-                                    _a.trys.push([1, 6, , 7]);
-                                    if (!process.env.VIRTUALENV) return [3 /*break*/, 3];
+                                    if (!process.env.VIRTUALENV) return [3 /*break*/, 2];
                                     return [4 /*yield*/, execa_1.shell([
-                                            exportPipfile,
-                                            pipenvRun + " " + pytestRun,
-                                            pytestNamePattern,
+                                            "export PIPENV_PIPFILE=" + process.env.VIRTUALENV,
+                                            "pipenv run python3 -m pytest " + testPath + " --json-report --json-report-indent=2 --json-report-file=" + testPath + ".json " + extraConfig,
                                         ])];
-                                case 2:
+                                case 1:
                                     _a.sent();
-                                    return [3 /*break*/, 5];
-                                case 3: return [4 /*yield*/, execa_1.exec("" + pytestRun + pytestNamePattern)];
-                                case 4:
+                                    return [3 /*break*/, 4];
+                                case 2: return [4 /*yield*/, execa_1.exec("py.test " + testPath + " --json-report --json-report-indent=2 --json-report-file=" + testPath + ".json " + extraConfig)];
+                                case 3:
                                     _a.sent();
-                                    _a.label = 5;
-                                case 5: return [3 /*break*/, 7];
-                                case 6:
+                                    _a.label = 4;
+                                case 4: return [3 /*break*/, 6];
+                                case 5:
                                     error_1 = _a.sent();
-                                    new CancelRun(error_1);
-                                    return [3 /*break*/, 7];
-                                case 7:
+                                    return [3 /*break*/, 6];
+                                case 6:
                                     testOutput = importFresh(testPath + ".json");
                                     if (testOutput.tests.length === 0) {
                                         reject();
                                     }
-                                    removeTestJsonFile(testPath);
+                                    return [4 /*yield*/, fs_1.unlink(testPath + ".json", function () { })];
+                                case 7:
+                                    _a.sent();
                                     end = +new Date();
                                     // Output print() statements
                                     testOutput.tests.map(function (x) {
@@ -165,11 +164,14 @@ var TestRunner = /** @class */ (function () {
                                             updated: 0,
                                             uncheckedKeys: [''],
                                         },
+                                        sourceMaps: {},
+                                        testExecError: null,
                                         testFilePath: testPath,
                                         testResults: assertionResults,
                                         leaks: false,
                                         numTodoTests: 0,
                                         openHandles: [],
+                                        displayName: { name: 'display name', color: 'cyanBright' },
                                     };
                                     resolve(testResult);
                                     return [2 /*return*/];
@@ -194,7 +196,6 @@ var TITLE_INDENT = '  ';
 var MESSAGE_INDENT = '    ';
 var ANCESTRY_SEPARATOR = ' \u203A ';
 var TITLE_BULLET = chalk.bold('\u25cf ');
-console.log(ANCESTRY_SEPARATOR);
 var formatFailureMessage = function (testOutput) {
     var failedTests = testOutput.tests.filter(function (test) { return test.outcome === 'failed'; });
     var message = '';
@@ -203,7 +204,7 @@ var formatFailureMessage = function (testOutput) {
         if (failedTests[i].call.crash.message.includes('!=')) {
             var failMessage = failedTests[i].call.crash.message;
             var diff = failMessage.split('!=');
-            message += jest_diff_1.default(diff[0].substr(16), diff[1].substr(1)) + '\n\n';
+            message += jest_diff_1.default(diff[0].substr(16), diff[1]) + '\n\n';
         }
         message += failedTests[i].call.crash.message;
         message += failedTests[i].call.longrepr;
@@ -225,17 +226,10 @@ var toTest = function (test, testPath) {
             testName: splitParts[2],
         };
     };
-    var failureMessage = function () {
-        if (test.outcome === 'failed') {
-            return ['\n', test.call.crash.message];
-        }
-        return [];
-    };
-    var totalDuration = test.setup.duration + test.call.duration + test.teardown.duration;
     return {
         ancestorTitles: [titleParts().testClass],
-        duration: totalDuration,
-        failureMessages: failureMessage(),
+        duration: test.setup.duration + test.call.duration + test.teardown.duration,
+        failureMessages: test.outcome === 'failed' ? [test.call.crash.message] : [],
         numPassingAsserts: test.outcome === 'passed' ? 1 : 0,
         status: test.outcome,
         title: titleParts().testName,
@@ -243,21 +237,4 @@ var toTest = function (test, testPath) {
         location: null,
     };
 };
-var removeTestJsonFile = function (testPath) { return __awaiter(void 0, void 0, void 0, function () {
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0: 
-            /**
-             * Remove test output json file
-             */
-            return [4 /*yield*/, fs_1.unlink(testPath + ".json", function () { })];
-            case 1:
-                /**
-                 * Remove test output json file
-                 */
-                _a.sent();
-                return [2 /*return*/];
-        }
-    });
-}); };
 module.exports = TestRunner;
