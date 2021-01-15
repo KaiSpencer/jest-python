@@ -77,7 +77,9 @@ var TestRunner = /** @class */ (function () {
                                         return [4 /*yield*/, onStart(test)];
                                     case 1:
                                         _a.sent();
-                                        return [2 /*return*/, this._runTest(test.path, test.context.config, test.context.resolver).then(function (result) { return onResult(test, result); })];
+                                        return [2 /*return*/, this._runTest(test.path, test.context.config, test.context.resolver)
+                                                .then(function (result) { return onResult(test, result); })
+                                                .catch(function (err) { })];
                                 }
                             });
                         }); });
@@ -90,20 +92,33 @@ var TestRunner = /** @class */ (function () {
             var _this = this;
             return __generator(this, function (_a) {
                 return [2 /*return*/, new Promise(function (resolve, reject) { return __awaiter(_this, void 0, void 0, function () {
-                        var error_1, testOutput, end;
+                        var extraConfig, pattern, error_1, testOutput, end, assertionResults, testResult;
                         return __generator(this, function (_a) {
                             switch (_a.label) {
                                 case 0:
                                     _a.trys.push([0, 5, , 6]);
+                                    extraConfig = [];
+                                    /**
+                                     * When a filter is applied by jest-watcher it is passed in _globalConfig.
+                                     * Check to see if there is a test name pattern
+                                     */
+                                    if (this._globalConfig.testNamePattern) {
+                                        pattern = this._globalConfig.testNamePattern;
+                                        // If select option remove leading ^ and trailing $
+                                        if (pattern.charAt(0) === '^') {
+                                            pattern = pattern.substring(1, pattern.length - 1);
+                                        }
+                                        extraConfig.push("-k " + pattern);
+                                    }
                                     if (!process.env.VIRTUALENV) return [3 /*break*/, 2];
                                     return [4 /*yield*/, execa_1.shell([
                                             "export PIPENV_PIPFILE=" + process.env.VIRTUALENV,
-                                            "pipenv run pytest " + testPath + " --json-report --json-report-indent=2 --json-report-file=" + testPath + ".json",
+                                            "pipenv run python3 -m pytest " + testPath + " --json-report --json-report-indent=2 --json-report-file=" + testPath + ".json " + extraConfig,
                                         ])];
                                 case 1:
                                     _a.sent();
                                     return [3 /*break*/, 4];
-                                case 2: return [4 /*yield*/, execa_1.exec("py.test " + testPath + " --json-report --json-report-indent=2 --json-report-file=" + testPath + ".json")];
+                                case 2: return [4 /*yield*/, execa_1.exec("py.test " + testPath + " --json-report --json-report-indent=2 --json-report-file=" + testPath + ".json " + extraConfig)];
                                 case 3:
                                     _a.sent();
                                     _a.label = 4;
@@ -113,11 +128,21 @@ var TestRunner = /** @class */ (function () {
                                     return [3 /*break*/, 6];
                                 case 6:
                                     testOutput = importFresh(testPath + ".json");
+                                    if (testOutput.tests.length === 0) {
+                                        reject();
+                                    }
                                     return [4 /*yield*/, fs_1.unlink(testPath + ".json", function () { })];
                                 case 7:
                                     _a.sent();
                                     end = +new Date();
-                                    resolve({
+                                    // Output print() statements
+                                    testOutput.tests.map(function (x) {
+                                        return x.call.stdout ? console.log(x.call.stdout) : '';
+                                    });
+                                    assertionResults = testOutput.tests.map(function (test) {
+                                        return toTest(test, testPath);
+                                    });
+                                    testResult = {
                                         console: null,
                                         failureMessage: testOutput.summary.failed > 0
                                             ? formatFailureMessage(testOutput)
@@ -137,12 +162,18 @@ var TestRunner = /** @class */ (function () {
                                             unchecked: 0,
                                             unmatched: 0,
                                             updated: 0,
+                                            uncheckedKeys: [''],
                                         },
                                         sourceMaps: {},
                                         testExecError: null,
                                         testFilePath: testPath,
-                                        testResults: testOutput.tests.map(toTest),
-                                    });
+                                        testResults: assertionResults,
+                                        leaks: false,
+                                        numTodoTests: 0,
+                                        openHandles: [],
+                                        displayName: { name: 'display name', color: 'cyanBright' },
+                                    };
+                                    resolve(testResult);
                                     return [2 /*return*/];
                             }
                         });
@@ -180,13 +211,30 @@ var formatFailureMessage = function (testOutput) {
     }
     return message;
 };
-var toTest = function (test) { return ({
-    ancestorTitles: [],
-    duration: test.setup.duration + test.call.duration + test.teardown.duration,
-    failureMessages: test.outcome === 'failed' ? [test.call.crash.message] : [],
-    fullName: test.nodeid,
-    numPassingAsserts: test.outcome === 'passed' ? 1 : 0,
-    status: test.outcome,
-    title: test.nodeid,
-}); };
+var toTest = function (test, testPath) {
+    var titleParts = function () {
+        /**
+         * Parse test output title into fileName, testClass and testName
+         *
+         * @returns TitleParts object
+         *
+         */
+        var splitParts = test.nodeid.split('::');
+        return {
+            fileName: splitParts[0],
+            testClass: splitParts[1],
+            testName: splitParts[2],
+        };
+    };
+    return {
+        ancestorTitles: [titleParts().testClass],
+        duration: test.setup.duration + test.call.duration + test.teardown.duration,
+        failureMessages: test.outcome === 'failed' ? [test.call.crash.message] : [],
+        numPassingAsserts: test.outcome === 'passed' ? 1 : 0,
+        status: test.outcome,
+        title: titleParts().testName,
+        fullName: titleParts().testName,
+        location: null,
+    };
+};
 module.exports = TestRunner;

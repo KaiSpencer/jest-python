@@ -1,12 +1,25 @@
 const chalk = require('chalk');
 const throat = require('throat');
 import { PytestOutput, Test } from '../types/pytest';
+import {
+  FormattedTestResult,
+  FormattedAssertionResult,
+  AssertionResult,
+  TestResult,
+} from '../types/jest';
 import defaultDiff from 'jest-diff';
+import { TestRunnerOptions } from 'jest-runner';
 import { TestWatcher } from 'jest';
 const importFresh = require('import-fresh');
 require('dotenv').config();
 import { exec, shell } from '@tunnckocore/execa';
 import { unlink } from 'fs';
+
+interface TitleParts {
+  fileName: string;
+  testClass: string;
+  testName: string;
+}
 
 class TestRunner {
   _globalConfig: any;
@@ -20,7 +33,7 @@ class TestRunner {
     onStart,
     onResult,
     onFailure,
-    options
+    options: TestRunnerOptions
   ) {
     const mutex = throat(this._globalConfig.maxWorkers);
     return Promise.all(
@@ -35,7 +48,9 @@ class TestRunner {
             test.path,
             test.context.config,
             test.context.resolver
-          ).then((result) => onResult(test, result));
+          )
+            .then((result) => onResult(test, result))
+            .catch((err) => {});
         })
       )
     );
@@ -44,23 +59,48 @@ class TestRunner {
   async _runTest(testPath, projectConfig, resolver) {
     return new Promise(async (resolve, reject) => {
       try {
+        const extraConfig = [];
+        /**
+         * When a filter is applied by jest-watcher it is passed in _globalConfig.
+         * Check to see if there is a test name pattern
+         */
+        if (this._globalConfig.testNamePattern) {
+          let pattern: string = this._globalConfig.testNamePattern;
+          // If select option remove leading ^ and trailing $
+          if (pattern.charAt(0) === '^') {
+            pattern = pattern.substring(1, pattern.length - 1);
+          }
+          extraConfig.push(`-k ${pattern}`);
+        }
         if (process.env.VIRTUALENV) {
           await shell([
             `export PIPENV_PIPFILE=${process.env.VIRTUALENV}`,
-            `pipenv run pytest ${testPath} --json-report --json-report-indent=2 --json-report-file=${testPath}.json`,
+            `pipenv run python3 -m pytest ${testPath} --json-report --json-report-indent=2 --json-report-file=${testPath}.json ${extraConfig}`,
           ]);
         } else {
           await exec(
-            `py.test ${testPath} --json-report --json-report-indent=2 --json-report-file=${testPath}.json`
+            `py.test ${testPath} --json-report --json-report-indent=2 --json-report-file=${testPath}.json ${extraConfig}`
           );
         }
       } catch (error) {}
 
       const testOutput: PytestOutput = importFresh(`${testPath}.json`);
+      if (testOutput.tests.length === 0) {
+        reject();
+      }
       await unlink(`${testPath}.json`, () => {});
       const end = +new Date();
 
-      resolve({
+      // Output print() statements
+      testOutput.tests.map((x) =>
+        x.call.stdout ? console.log(x.call.stdout) : ''
+      );
+
+      const assertionResults: AssertionResult[] = testOutput.tests.map((test) =>
+        toTest(test, testPath)
+      );
+
+      const testResult: TestResult = {
         console: null,
         failureMessage:
           testOutput.summary.failed > 0
@@ -83,12 +123,18 @@ class TestRunner {
           unchecked: 0,
           unmatched: 0,
           updated: 0,
+          uncheckedKeys: [''],
         },
         sourceMaps: {},
         testExecError: null,
         testFilePath: testPath,
-        testResults: testOutput.tests.map(toTest),
-      });
+        testResults: assertionResults,
+        leaks: false,
+        numTodoTests: 0,
+        openHandles: [],
+        displayName: { name: 'display name', color: 'cyanBright' },
+      };
+      resolve(testResult);
     });
   }
 }
@@ -126,14 +172,32 @@ const formatFailureMessage = (testOutput: PytestOutput): string => {
   return message;
 };
 
-const toTest = (test: Test) => ({
-  ancestorTitles: [],
-  duration: test.setup.duration + test.call.duration + test.teardown.duration,
-  failureMessages: test.outcome === 'failed' ? [test.call.crash.message] : [],
-  fullName: test.nodeid,
-  numPassingAsserts: test.outcome === 'passed' ? 1 : 0,
-  status: test.outcome,
-  title: test.nodeid,
-});
+const toTest = (test: Test, testPath: string): AssertionResult => {
+  const titleParts = (): TitleParts => {
+    /**
+     * Parse test output title into fileName, testClass and testName
+     *
+     * @returns TitleParts object
+     *
+     */
+    const splitParts = test.nodeid.split('::');
+    return {
+      fileName: splitParts[0],
+      testClass: splitParts[1],
+      testName: splitParts[2],
+    };
+  };
+
+  return {
+    ancestorTitles: [titleParts().testClass],
+    duration: test.setup.duration + test.call.duration + test.teardown.duration,
+    failureMessages: test.outcome === 'failed' ? [test.call.crash.message] : [],
+    numPassingAsserts: test.outcome === 'passed' ? 1 : 0,
+    status: test.outcome as 'failed' | 'passed',
+    title: titleParts().testName,
+    fullName: titleParts().testName,
+    location: null,
+  };
+};
 
 module.exports = TestRunner;

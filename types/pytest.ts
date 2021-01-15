@@ -25,6 +25,8 @@ interface Call {
   crash?: Crash;
   traceback?: Crash[];
   longrepr?: string;
+  stdout?: string;
+  stderr?: string;
 }
 
 interface Crash {
